@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Sample to demonstrate how to use aws-cfn-custom-resource-lambda-edge
+Resources:
+
+ # # CloudFront distribution
+ #  Distribution:
+ #    Type: AWS::CloudFront::Distribution
+ #    Properties:
+ #      DistributionConfig:
+ #        DefaultCacheBehavior:
+ #          LambdaFunctionAssociations:
+ #            - EventType: origin-request
+ #              LambdaFunctionARN: !GetAtt EdgeOriginRequest.FunctionVersion
+
+  # Unused Lambda function only to get `CodeUri` working
+  EdgeOriginRequestSource:
+    Type: AWS::Serverless::Function
+    Properties:
+      # Auto publish alias is required to get `Version` parameter and force publication
+      AutoPublishAlias: live
+      CodeUri: src
+      Handler: main.handle
+      Runtime: nodejs12.x
+      MemorySize: 2048 # Mo
+
+  # Custom resource to "copy" the Lambda in the standard region (us-east-1)
+  EdgeOriginRequest:
+    Type: Custom::LambdaEdge
+    Properties:
+      ServiceToken: !ImportValue CustomResourceLambdaEdgeServiceToken
+      Parameters:
+        LambdaSourceArn: !Ref EdgeOriginRequestSource.Version

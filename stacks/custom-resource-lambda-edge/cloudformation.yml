@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Custom AWS Cloudformation resource for Lambda@Edge deployment
+
+
+Parameters:
+  LambdaEdgeCodeBucket:
+    Description: Name of the bucket that will hosts the code for the destination Lambda.
+    # This bucket MUST be in the standard AWS region (us-east-1).
+    Type: String
+  LambdaEdgeCodeKeyPrefix:
+    Description: Key prefix of the S3 ZIP file that contains the Lambda@Edge source code
+    Type: String
+    Default: lambda-edge/
+  LambdaEdgeRegion:
+    Description: Deployment region of the Lambda@Edge.
+    # At the moment, Virginia standard region is the only region where Lambda@Edge can be deployed.
+    Type: String
+    Default: us-east-1
+  LogsRetention:
+    Description: Custom resource logs rentention in days.
+    Type: Number
+    Default: 14 # Days
+
+
+Resources:
+
+
+  # AWS Lambda Function handling the custom resource
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      # Function name should be fixed, because ARN is exported as ServiceToken and cannot change
+      # That's also why an alias cannot be published, because a new one will change the ARN
+      FunctionName: cfn-custom-resource-lambda-edge
+      Description: cfn-custom-resource-lambda-edge
+      CodeUri: src
+      Handler: main.handle
+      Runtime: nodejs12.x
+      MemorySize: 2048 # Mo
+      Timeout: 900 # 15 minutes
+      Environment:
+        Variables:
+          # This is the bucket that will hosts the code for the destination Lambda
+          # This bucket MUST be in the standard AWS region (us-east-1)
+          # That's why this bucket is deployed in a separate CloudFormation stack
+          LAMBDA_EDGE_CODE_BUCKET: !Ref LambdaEdgeCodeBucket
+          # Key prefix of the S3 ZIP file that contains the Lambda@Edge source code
+          LAMBDA_EDGE_CODE_KEY_PREFIX: !Ref LambdaEdgeCodeKeyPrefix
+          # Deployment region of the Lambda@Edge
+          # Virginia standard region is the only region where Lambda@Edge can be deployed
+          LAMBDA_EDGE_REGION: !Ref LambdaEdgeRegion
+      Policies:
+        # Allow to create, update and delete CloudFormation stacks
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Resource: "*"
+              Action:
+                # Allow to create, update and delete CloudFormation stacks
+                - cloudformation:*
+                # Allow to create, update and delete Lambda functions
+                - lambda:*
+                # Allow to create, update and delete IAM role for Lambda
+                - iam:*
+                # Allow to create, update and delete CloudWatch groups
+                - logs:*
+        # Allow to put and delete the Lambda source code file on the us-east-1 bucket
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:DeleteObject
+                - s3:PutObject
+              Resource: !Sub
+                - arn:aws:s3:::${BucketName}/${KeyPrefix}*
+                - BucketName: !Ref LambdaEdgeCodeBucket
+                  KeyPrefix: !Ref LambdaEdgeCodeKeyPrefix
+        # Allow to delete legacy Lambda source code file
+        # TODO: This can be removed at some point in the future
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action: s3:DeleteObject
+              Resource: !Sub
+                - arn:aws:s3:::${BucketName}/lambda/*
+                - BucketName: !Ref LambdaEdgeCodeBucket
+        # Allow CloudFormation sub stack (in us-east-1) to access the source code file on the us-east-1 bucket
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+                - s3:ListBucketVersions
+              Resource: !Sub
+                - arn:aws:s3:::${BucketName}
+                - BucketName: !Ref LambdaEdgeCodeBucket
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:GetObjectTagging
+                - s3:GetObjectVersion
+                - s3:GetObjectVersionAcl
+                - s3:GetObjectVersionTagging
+              Resource: !Sub
+                - arn:aws:s3:::${BucketName}/${KeyPrefix}*
+                - BucketName: !Ref LambdaEdgeCodeBucket
+                  KeyPrefix: !Ref LambdaEdgeCodeKeyPrefix
+
+
+  # CloudWatch log group of the Lambda handling the custom resource
+  FunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Function}
+      RetentionInDays: !Ref LogsRetention
+
+
+Outputs:
+  FunctionName:
+    Description: Resource name of the underlying Lambda function
+    Value: !Ref Function
+  FunctionArn:
+    Description: The ARN of the Lambda function
+    Value: !GetAtt Function.Arn
+  ServiceToken:
+    Description: Service token of generic custom resource
+    Value: !GetAtt Function.Arn
+    Export:
+      Name: CustomResourceLambdaEdgeServiceToken

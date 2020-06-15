@@ -1,0 +1,30 @@
+# git - mergetool
+*.orig
+
+# Node - Logs
+*.log
+npm-debug.log*
+
+# Node - Dependencies
+node_modules
+
+# Temporary folder
+/tmp
+
+# OS - OSX
+.DS_Store
+
+# OS - Windows
+Thumbs.db
+ehthumbs.db
+
+# OS - Linux (KDE directory preferences)
+.directory
+
+# Editor - VIM
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*~
+
+# Editor - JetBrains
+.idea/

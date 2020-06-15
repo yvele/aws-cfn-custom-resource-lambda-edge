@@ -1,0 +1,116 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Lambda@Edge created by a custom resource
+Transform: AWS::Serverless-2016-10-31
+
+
+Parameters:
+  FunctionDescription:
+    Description: "Description of the function"
+    Type: String
+  FunctionHandler:
+    Description: "Function within your code that is called to begin execution"
+    Type: String
+    MinLength: 1
+  FunctionRuntime:
+    Description: "The runtime environment"
+    Type: String
+    MinLength: 1
+  FunctionMemorySize:
+    Description: "Size of the memory allocated per invocation of the function in MB"
+    Type: Number
+  FunctionTimeout:
+    Description: "Maximum time that the function can run before it is killed in seconds"
+    Type: Number
+  FunctionTracing:
+    Description: "String that specifies the function's X-Ray tracing mode"
+    Type: String
+  FunctionRole:
+    Description: "ARN of an IAM role to use as this function's execution role. If omitted, a default role is created for this function"
+    Type: String
+    Default: "" # Not specified by default
+  CodeUriBucket:
+    Description: "Bucket name of the function code"
+    Type: String
+    AllowedPattern: "[a-z0-9.-]*"
+    MaxLength: 60
+    MinLength: 5
+  CodeUriKey:
+    Description: "Key of the S3 object where is located the function code"
+    Type: String
+    AllowedPattern: "[A-Za-z0-9.\\/-]*"
+    MaxLength: 100
+    MinLength: 5
+  CodeUriVersion:
+    Description: "Version of the S3 object where is located the function code"
+    Type: String
+    MaxLength: 100
+    MinLength: 5
+
+
+Conditions:
+  # Only create and use a default role when a specific role is not explicitly specified
+  UseDefaultFunctionRole: !Equals [!Ref FunctionRole, ""]
+
+
+Resources:
+
+  # Default Lambda@Edge execution role
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Condition: UseDefaultFunctionRole
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - edgelambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+
+
+  # Lambda@Edge Function
+  # Note that `Fun` ressource name is volontary ultra short in order to improve
+  # final resource name lisibility
+  Fun:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description : !Ref FunctionDescription
+      Handler     : !Ref FunctionHandler
+      Runtime     : !Ref FunctionRuntime
+      MemorySize  : !Ref FunctionMemorySize # Mo
+      Timeout     : !Ref FunctionTimeout # Seconds
+      Tracing     : !Ref FunctionTracing
+      Role: !If
+        - UseDefaultFunctionRole
+        - !GetAtt LambdaRole.Arn
+        - !Ref FunctionRole
+      CodeUri:
+        Bucket: !Ref CodeUriBucket
+        Key: !Ref CodeUriKey
+        Version: !Ref CodeUriVersion
+      # See https://github.com/awslabs/serverless-application-model/blob/master/docs/safe_lambda_deployments.rst
+      # Necessary to get `!Ref Fun.Version`
+      AutoPublishAlias: live
+
+
+Outputs:
+  FunctionArn:
+    Description: The ARN of the Lambda function
+    Value: !GetAtt Fun.Arn
+  FunctionVersion:
+    Description: The full ARN containing version of the Lambda function (e.g. {FunctionARN}:{Version})
+    Value: !Ref Fun.Version
+  CodeUri:
+    Description: S3 URL of the code bundle
+    Value: !Sub s3://${CodeUriBucket}/${CodeUriKey}?versionId=${CodeUriVersion}
+  FunctionRoleArn:
+    Description: Execution role ARN
+    Value: !If
+      - UseDefaultFunctionRole
+      - !GetAtt LambdaRole.Arn
+      - !Ref FunctionRole

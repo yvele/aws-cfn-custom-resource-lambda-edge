@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Bucket where CloudFront package command uploads artifacts that are referenced in templates
+
+Parameters:
+  IntelligentTieringTransition:
+    Description: S3 intelligent tiering transition in days
+    Type: Number
+    Default: 33
+
+Resources:
+
+  Bucket:
+    Type: AWS::S3::Bucket
+    # Deletion will fail anyway when bucket is not empty
+    DeletionPolicy: Delete
+    Properties:
+      # Restrict access
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      # Encryption
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      # Lifecycle
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: MultipartUploadCleanup
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 5
+          # Transition all objects > 128kb to intelligent tiering for improved costs
+          - Id: IntelligentTieringTransition
+            Status: Enabled
+            Transitions:
+              - StorageClass: INTELLIGENT_TIERING
+                TransitionInDays: !Ref IntelligentTieringTransition
+          # Permanent deletion after 30 days to allow reverting accidental deletion
+          - Id: PermanentDeletion
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+      # Statistis and logs
+      MetricsConfigurations:
+        - Id: EntireBucket # Must be `EntireBucket` in order to see it by default in AWS Console
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: Bucket
+    Properties:
+      Bucket: !Ref Bucket
+      PolicyDocument:
+        Id: BucketPolicy
+        Version: 2012-10-17
+        Statement:
+          # Disable transport over HTTP without SSL
+          - Sid: DenyUnsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Resource: !GetAtt Bucket.Arn
+            Action: s3:*
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+Outputs:
+  BucketName:
+    Description: Resource name of the bucket
+    Value: !Ref Bucket
+  BucketArn:
+    Description: The ARN of the bucket
+    Value: !GetAtt Bucket.Arn
