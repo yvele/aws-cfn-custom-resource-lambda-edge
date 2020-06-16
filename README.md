@@ -28,8 +28,7 @@ Run the script that installs the CloudFormation custom resource and it's depende
 ./install.sh eu-west-1
 ```
 
-The scripts will deploy 3 CloudFormation stacks. When done,
-the script will prompt you to deploy and optional CloudFront sample.
+The scripts will deploy 3 CloudFormation stacks.
 
 Note that the first stack is a prerequisite that deploys an S3 bucket required by CloudFormation to [upload local artifacts](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-cli-package.html). You probably already have such bucket.
 
