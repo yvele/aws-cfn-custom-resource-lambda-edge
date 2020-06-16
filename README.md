@@ -4,7 +4,7 @@
   <img align="right" alt="CloudFormation" src="docs/media/cfn-logo.png" title="CloudFormation custom resource" height="150"/>
 </a>
 
-> This project provides a `Custom::Resource` for AWS CloudFormation that copies an existing Lambda deployment to another region. Specially useful for [Lambda@Edge](https://aws.amazon.com/lambda/edge/).
+> This project provides a `Custom::Resource` for AWS CloudFormation that copies a provided Lambda to the `us-east-1` standard region. This is specially useful to deploy [Lambda@Edge](https://aws.amazon.com/lambda/edge/) from other regions than the standard one.
 
 
 [![Node](https://img.shields.io/badge/node-v12.x-blue.svg)](https://nodejs.org)
