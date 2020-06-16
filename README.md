@@ -25,7 +25,7 @@ Clone the repository.
 Run the script that installs the CloudFormation custom resource and it's dependencies. The first argument is the AWS region where you want the custom resource to be installed.
 
 ```sh
-./deploy.sh eu-west-1
+./install.sh eu-west-1
 ```
 
 The scripts will deploy 3 CloudFormation stacks. When done,
