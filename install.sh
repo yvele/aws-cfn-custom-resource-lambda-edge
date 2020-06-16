@@ -2,36 +2,49 @@
 set -e
 
 
-REGION=$1
-if [ -z "$REGION" ]
-then
-  echo "You must pass an AWS region as first argument"
+# Parse script parameters
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    --region) REGION="$2"; shift;;
+    --package-bucket) PACKAGE_BUCKET="$2"; shift;;
+    *) echo "Unknown parameter: $1"; exit 1;;
+  esac
+  shift
+done
+
+if [ -z "$REGION" ]; then
+  echo "Region parameter is not set"
   exit 1
 fi
 
 
-echo
-echo "  ================================================================="
-echo "  0. Prerequisite"
-echo "  --------------------------"
-echo "  Deploy the S3 bucket that will host local artifacts uploaded by"
-echo "  CloudFormation when packing in ${REGION}."
-echo "  ================================================================="
 
-aws cloudformation deploy \
-  --region ${REGION} \
-  --template-file stacks/package-bucket/cloudformation.yml \
-  --stack-name package-bucket \
-  --no-fail-on-empty-changeset
+if [ -z "$PACKAGE_BUCKET" ]; then
 
-PACKAGE_BUCKET=$(aws cloudformation describe-stack-resource \
-  --region ${REGION} \
-  --stack-name package-bucket \
-  --logical-resource-id Bucket \
-  --output text \
-  --query StackResourceDetail.PhysicalResourceId)
+  echo
+  echo "  ================================================================="
+  echo "  0. Prerequisite"
+  echo "  --------------------------"
+  echo "  Deploy the S3 bucket that will host local artifacts uploaded by"
+  echo "  CloudFormation when packing in ${REGION}."
+  echo "  ================================================================="
 
-echo "Deployed S3 bucket name: ${PACKAGE_BUCKET}"
+  aws cloudformation deploy \
+    --region ${REGION} \
+    --template-file stacks/package-bucket/cloudformation.yml \
+    --stack-name package-bucket \
+    --no-fail-on-empty-changeset
+
+  PACKAGE_BUCKET=$(aws cloudformation describe-stack-resource \
+    --region ${REGION} \
+    --stack-name package-bucket \
+    --logical-resource-id Bucket \
+    --output text \
+    --query StackResourceDetail.PhysicalResourceId)
+
+  echo "Deployed S3 bucket name: ${PACKAGE_BUCKET}"
+
+fi
 
 
 

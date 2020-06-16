@@ -20,17 +20,21 @@
 
 Clone the repository.
 
-[Setup your AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) before running the script.
+[Setup your AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) then run the install script that deploys the CloudFormation [custom resource](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) and it's dependencies.
 
-Run the script that installs the CloudFormation custom resource and it's dependencies. The first argument is the AWS region where you want the custom resource to be installed.
+Use the `--region` parameter to specify where you want your custom resource to be deployed:
 
 ```sh
-./install.sh eu-west-1
+./install.sh --region eu-west-1
 ```
 
-The scripts will deploy 3 CloudFormation stacks.
+The script deploys 3 CloudFormation stacks.
 
-Note that the first stack is a prerequisite that deploys an S3 bucket required by CloudFormation to [upload local artifacts](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-cli-package.html). You probably already have such bucket.
+Note that [the first stack](https://github.com/yvele/aws-cfn-custom-resource-lambda-edge/tree/master/stacks/package-bucket) is a prerequisite that deploys an S3 bucket required by CloudFormation to [upload local artifacts](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-cli-package.html). If you already have such bucket, you can skip installing it by providing the optional `--package-bucket` parameter:
+
+```sh
+./install.sh --region eu-west-1 --package-bucket my-package-bucket
+```
 
 
 ## Usage
