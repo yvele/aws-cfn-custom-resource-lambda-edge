@@ -57,7 +57,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src
-      AutoPublishAlias: live  # Required to get `Version` parameter and force publication
+      AutoPublishAlias: live # Required to get `Version` parameter and force publication
 
   # Custom resource to "copy" the Lambda in the standard region (us-east-1)
   EdgeOriginRequest:
@@ -91,7 +91,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src
-      AutoPublishAlias: live  # Required to get `Version` parameter and force publication
+      AutoPublishAlias: live # Required to get `Version` parameter and force publication
 
   # Custom resource to "copy" the Lambda in the standard region (us-east-1)
   EdgeOriginRequest:
@@ -121,8 +121,8 @@ Resources:
       Policies:
         - PolicyName: CustomPolicy
           PolicyDocument:
-            Version   : 2012-10-17
-            Statement :
+            Version: 2012-10-17
+            Statement:
               - Effect: Allow
                 Resource: "*"
                 Action: lambda:InvokeFunction
