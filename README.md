@@ -104,7 +104,7 @@ Resources:
       ServiceToken: !ImportValue CustomResourceLambdaEdgeServiceToken
       Parameters:
         LambdaSourceArn: !Ref EdgeOriginRequestSource.Version
-        LambdaRoleArn: !Ref EdgeOriginRequestRole
+        LambdaRoleArn: !GetAtt EdgeOriginRequestRole.Arn
 
   # Custom execution role
   EdgeOriginRequestRole:
